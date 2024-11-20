@@ -1,11 +1,11 @@
 require 'uri'
 require 'net/http'
 require 'json'
-
+require 'dotenv/load'
 
 class EasyBrokerAPI
   BASE_URL = URI("https://api.stagingeb.com/v1/")
-  API_KEY = 'l7u502p8v46ba3ppgvj5y2aad50lb9'
+  API_KEY = ENV['API_KEY']
 
   def fetch_properties
     url = URI("#{BASE_URL}/properties")
@@ -14,23 +14,33 @@ class EasyBrokerAPI
 
     request = Net::HTTP::Get.new(url)
     request["accept"] = 'application/json'
-    request["X-Authorization"] = 'l7u502p8v46ba3ppgvj5y2aad50lb9'
+    request["X-Authorization"] = API_KEY
 
     response = http.request(request)
-    puts response.read_body
+
+    puts "HTTP Status Code: #{response.code}"
+    puts "Response Body: #{response.body[0..200]}"
 
     if response.is_a?(Net::HTTPSuccess)
       begin
         properties = JSON.parse(response.body)['content']
-        properties.each do |property|
-          puts property['title']
+        if properties.nil? || properties.empty?
+          puts "No se encontraron propiedades."
+        else
+          properties.each do |property|
+            puts property['title']
+          end
         end
       rescue JSON::ParserError => e
         puts "Error al parsear JSON: #{e.message}"
-        puts "Respuesta recibida: #{response.body[0..200]}"  # Muestra los primeros 200 caracteres
+        puts "Respuesta recibida: #{response.body[0..200]}"
       end
     else
       puts "Error: #{response.message}"
     end
   end
 end
+
+api = EasyBrokerAPI.new
+api.fetch_properties
+
